@@ -18,7 +18,7 @@
 #   curl --retry 3 "https://raw.githubusercontent.com/AMTM-OSR/scribe/master/scribe.h" -o "/jffs/scripts/scribe" && chmod 0755 /jffs/scripts/scribe && /jffs/scripts/scribe install
 #
 ##################################################################
-# Last Modified: 2026-Feb-18
+# Last Modified: 2026-Feb-21
 #-----------------------------------------------------------------
 
 ################       Shellcheck directives     ################
@@ -35,7 +35,7 @@
 
 readonly script_name="scribe"
 readonly scribe_ver="v3.2.11"
-readonly scriptVer_TAG="26021800"
+readonly scriptVer_TAG="26022123"
 scribe_branch="develop"
 script_branch="$scribe_branch"
 
@@ -1371,18 +1371,17 @@ Show_SysLogNg_LoadedConfig()
 ##-------------------------------------##
 _AcquireFLock_()
 {
-   local opts=""
-   eval exec "$LR_FLock_FD>$LR_FLock_FName"
-   
-   if [ $# -eq 1 ] && [ "$1" = "nonblock" ]
-   then opts="-n"
+   local opts="-n"
+   if [ $# -gt 0 ] && [ "$1" = "waitblock" ]
+   then opts=""
    fi
-   flock -x $opts "$LR_FLock_FD"
+   eval exec "$LR_FLock_FD>$LR_FLock_FName"
+   flock -x $opts "$LR_FLock_FD" 2>/dev/null
    return "$?"
 }
 
 _ReleaseFLock_()
-{ flock -u "$LR_FLock_FD" ; }
+{ flock -u "$LR_FLock_FD" 2>/dev/null ; }
 
 ##-------------------------------------##
 ## Added by Martinski W. [2026-Jan-04] ##
@@ -2295,7 +2294,7 @@ Gather_Debug()
     fi
 
     printf "\n%s\n### logrotate debug output:\n" "$debug_sep" >> "$script_debug"
-    if _AcquireFLock_
+    if _AcquireFLock_ nonblock
     then
         _DoRotateLogFiles_ DEBUG
         _ReleaseFLock_
@@ -2875,7 +2874,7 @@ Scribe_Menu()
                     ;;
                 ld)
                     delfr "$lr_temp"
-                    if _AcquireFLock_
+                    if _AcquireFLock_ nonblock
                     then
                         _DoRotateLogFiles_ DEBUG TEMP
                         _ReleaseFLock_
@@ -3089,7 +3088,7 @@ case "$action" in
         ;;
 
     LogRotateDebug)
-        if _AcquireFLock_
+        if _AcquireFLock_ nonblock
         then
             delfr "$lr_temp"
             _DoRotateLogFiles_ DEBUG TEMP
